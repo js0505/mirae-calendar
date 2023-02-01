@@ -1,20 +1,40 @@
 {
-  "name": "for-mirae-calendar",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "next": "13.1.5",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
-  },
-  "devDependencies": {
-    "eslint": "8.32.0",
-    "eslint-config-next": "13.1.5"
-  }
+	"name": "for-mirae-calendar",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev",
+		"build": "cross-env next build",
+		"start": "cross-env next start -p 5000",
+		"lint": "next lint"
+	},
+	"dependencies": {
+		"@fullcalendar/core": "^6.0.3",
+		"@fullcalendar/daygrid": "^6.0.3",
+		"@fullcalendar/interaction": "^6.0.3",
+		"@fullcalendar/react": "^6.0.4",
+		"@headlessui/react": "^1.7.7",
+		"@reduxjs/toolkit": "^1.9.1",
+		"cross-env": "^7.0.3",
+		"date-fns": "^2.29.3",
+		"mongodb": "^4.13.0",
+		"mongoose": "^6.8.4",
+		"next": "13.1.5",
+		"next-connect": "^0.13.0",
+		"react": "18.2.0",
+		"react-datepicker": "^4.8.0",
+		"react-dom": "18.2.0",
+		"react-hook-form": "^7.42.1",
+		"react-redux": "^8.0.5",
+		"react-toastify": "^9.1.1",
+		"uuid": "^9.0.0",
+		"zustand": "^4.3.2"
+	},
+	"devDependencies": {
+		"autoprefixer": "^10.4.13",
+		"eslint": "8.32.0",
+		"eslint-config-next": "13.1.5",
+		"postcss": "^8.4.21",
+		"tailwindcss": "^3.2.4"
+	}
 }
