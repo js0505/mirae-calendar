@@ -46,6 +46,7 @@ export default function CreateEventModal({ open, onClose }) {
 
 		if (response.data.success) {
 			toast.success(response.data.message)
+			onClose()
 		} else {
 			toast.error(response.data.message)
 		}
@@ -82,7 +83,7 @@ export default function CreateEventModal({ open, onClose }) {
 									className="border col-span-5 h-10 rounded-lg px-2 
 									hover:bg-gray-500 hover:bg-opacity-20"
 									placeholder="제목을 입력하세요."
-									{...register("title")}
+									{...register("title", { required: true })}
 								/>
 
 								<label className="text-right mr-4 col-span-2 text-lg leading-10">

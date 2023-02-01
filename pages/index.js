@@ -6,6 +6,7 @@ import interactionPlugin from "@fullcalendar/interaction"
 import { Fragment, useEffect, useState } from "react"
 import { Dialog, Switch, Transition } from "@headlessui/react"
 import {
+	useDeleteEventMutation,
 	useEditEventMutation,
 	useGetFilteredEventsQuery,
 } from "../query/eventApi"
@@ -24,7 +25,6 @@ import DeleteIcon from "../components/UI/icons/delete"
 
 export default function Home() {
 	const [events, setEvents] = useState([])
-	const [dateModalEvents, setDateModalEvents] = useState([])
 	const [modalDateStr, setModalDateStr] = useState("")
 	const [isOpenDateClickModal, setIsOpenDateClickModal] = useState(false)
 	const [isOpenCreateEventModal, setIsOpenCreateEventModal] = useState(false)
@@ -43,14 +43,7 @@ export default function Home() {
 
 	const onDateClickHandler = (arg) => {
 		const clickedDate = arg.dateStr
-		let filteredEvents = []
-		events.forEach((item) => {
-			if (item.start.slice(5, 10) === clickedDate.slice(5, 10)) {
-				filteredEvents.push(item)
-			}
-		})
 		setModalDateStr(clickedDate)
-		setDateModalEvents(filteredEvents)
 		setIsOpenDateClickModal(true)
 	}
 
@@ -78,13 +71,9 @@ export default function Home() {
 
 	return (
 		<div className="w-full h-screen flex justify-center items-center border">
-			<Head>
-				<title>Create Next App</title>
-			</Head>
-
 			{isOpenDateClickModal && (
 				<DateClickModal
-					events={dateModalEvents}
+					events={events}
 					open={isOpenDateClickModal}
 					dateStr={modalDateStr}
 					onClose={() => setIsOpenDateClickModal(false)}
@@ -133,14 +122,24 @@ export default function Home() {
 function DateClickModal({ events, open, onClose, dateStr }) {
 	const { data, isSuccess } = useGetDiaryQuery({ date: dateStr })
 	const [diary, setDiary] = useState({ description: "", id: "" })
+	const [filteredEvents, setFilteredEvents] = useState([])
+
 	const [addDiary] = useAddDiaryMutation()
 	const [editDiary] = useEditDiaryMutation()
-
 	useEffect(() => {
 		if (isSuccess && data.diary !== null) {
 			setDiary({ description: data.diary.description, id: data.diary._id })
 		}
-	}, [isSuccess, open])
+		if (events) {
+			let arr = []
+			events.forEach((item) => {
+				if (item.start.slice(5, 10) === dateStr.slice(5, 10)) {
+					arr.push(item)
+				}
+			})
+			setFilteredEvents(arr)
+		}
+	}, [isSuccess, open, events, dateStr])
 
 	const submitFunction = async () => {
 		// 데이터 없을 때 새 데이터 생성
@@ -177,7 +176,6 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 	const month = dateStr.slice(5, 7)
 	const day = dateStr.slice(8, 10)
 
-	console.log(events)
 	return (
 		<Transition appear show={open} as={Fragment}>
 			<Dialog onClose={onClose} className="absolute z-50 ">
@@ -200,8 +198,8 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 								<div className="flex p-2 ">
 									<div className="w-full p-3 mb-4">
 										<h2 className="text-xl font-semibold my-2">Events</h2>
-										{events &&
-											events.map((event) => {
+										{filteredEvents &&
+											filteredEvents.map((event) => {
 												if (!event._id) {
 													return
 												}
@@ -256,7 +254,7 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 									className="border w-20 rounded-lg bg-[#2c3e50] text-white
 								hover:bg-[#16a085]"
 								>
-									CANCEL
+									CLOSE
 								</button>
 							</div>
 						</Dialog.Panel>
@@ -269,6 +267,19 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 
 function EventItemBar({ title, id, memo, start, end, allDay }) {
 	const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+	const [deleteEvent] = useDeleteEventMutation()
+	const deleteEventHandler = async () => {
+		const accept = confirm("삭제 하시겠습니까?")
+		if (!accept) return
+
+		const response = await deleteEvent({ id })
+
+		if (response.data.success) {
+			toast.success(response.data.message)
+		} else {
+			toast.error(response.data.message)
+		}
+	}
 	return (
 		<>
 			{isUpdateModalOpen && (
@@ -297,7 +308,10 @@ function EventItemBar({ title, id, memo, start, end, allDay }) {
 								{title}
 							</span>
 
-							<button className="w-16 h-10  flex justify-center items-center hover:bg-gray-100 rounded-full">
+							<button
+								onClick={deleteEventHandler}
+								className="w-16 h-10  flex justify-center items-center hover:bg-gray-100 rounded-full"
+							>
 								<DeleteIcon />
 							</button>
 						</div>
@@ -365,6 +379,7 @@ function UpdateEventModal({
 		const response = await editEvent({ body })
 		if (response.data.success) {
 			toast.success(response.data.message)
+			onClose()
 		} else {
 			toast.error(response.data.message)
 		}
@@ -401,7 +416,7 @@ function UpdateEventModal({
 									type="text"
 									className="border col-span-5 h-10 rounded-lg px-2 
 									hover:bg-gray-500 hover:bg-opacity-20"
-									{...register("title")}
+									{...register("title", { required: true })}
 								/>
 
 								<label className="text-right mr-4 col-span-2 text-lg leading-10">
@@ -453,7 +468,11 @@ function UpdateEventModal({
 								>
 									End date:
 								</label>
-								<div>
+								<div
+									className={`${
+										isAllDayChecked ? "block" : "hidden"
+									} col-span-6`}
+								>
 									<ReactDatePicker
 										className="text-center border h-10 cursor-pointer rounded-lg text-lg"
 										selected={endDate}

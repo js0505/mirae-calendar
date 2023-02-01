@@ -31,12 +31,12 @@ handler.post(async function (req, res) {
 		newEvent.save()
 		res
 			.status(200)
-			.json({ success: true, event: newEvent, message: "이벤트 등록 성공" })
+			.json({ success: true, event: newEvent, message: "일정 등록 성공" })
 	} catch (e) {
 		console.log("err")
 		res
 			.status(400)
-			.json({ success: false, message: "이벤트 등록 중 오류 발생" })
+			.json({ success: false, message: "일정 등록 중 오류 발생" })
 	}
 })
 
@@ -50,10 +50,10 @@ handler.patch(async function (req, res) {
 				$set: { title, start, end, memo, allDay },
 			},
 		)
-		res.status(200).json({ success: true, event: updateEvent })
+		res.status(200).json({ success: true, event: updateEvent, message:"일정 수정 성공" })
 	} catch (e) {
 		console.log(e)
-		res.status(400).json({ success: false, error: e })
+		res.status(400).json({ success: false, error: e , message:'일정 수정 실패'})
 	}
 })
 
@@ -61,9 +61,9 @@ handler.delete(async function (req, res) {
 	try {
 		const { id } = req.body
 		const deleteEvent = await Event.findByIdAndRemove(id)
-		res.status(200).json({ success: true, event: deleteEvent })
+		res.status(200).json({ success: true, event: deleteEvent, message:'일정 삭제 성공' })
 	} catch (e) {
-		res.status(400).json({ success: false })
+		res.status(400).json({ success: false, message:'일정 삭제 실패' })
 	}
 })
 export default handler
