@@ -2,7 +2,7 @@ import { Dialog, Switch, Transition } from "@headlessui/react"
 import { format } from "date-fns"
 import { Fragment, useState } from "react"
 import { useForm } from "react-hook-form"
-import { useAddEventMutation } from "../\vquery/eventApi"
+import { useAddEventMutation } from "../query/eventApi"
 import { toast } from "react-toastify"
 import ReactDatePicker from "react-datepicker"
 

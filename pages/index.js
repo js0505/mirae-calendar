@@ -8,7 +8,7 @@ import { Dialog, Switch, Transition } from "@headlessui/react"
 import {
 	useEditEventMutation,
 	useGetFilteredEventsQuery,
-} from "../\vquery/eventApi"
+} from "../query/eventApi"
 import ReactDatePicker from "react-datepicker"
 import { useForm } from "react-hook-form"
 import { format } from "date-fns"
@@ -18,7 +18,7 @@ import {
 	useEditDiaryMutation,
 	useGetDiaryQuery,
 	useGetFilteredDiarysQuery,
-} from "../\vquery/diaryApi"
+} from "../query/diaryApi"
 import CreateEventModal from "../components/create-event"
 import DeleteIcon from "../components/UI/icons/delete"
 
