@@ -1,4 +1,3 @@
-import Head from "next/head"
 import FullCalendar from "@fullcalendar/react"
 import dayGridPlugin from "@fullcalendar/daygrid"
 import interactionPlugin from "@fullcalendar/interaction"
@@ -27,7 +26,7 @@ export default function Home() {
 	const [events, setEvents] = useState([])
 	const [modalDateStr, setModalDateStr] = useState("")
 	const [isOpenDateClickModal, setIsOpenDateClickModal] = useState(false)
-	const [isOpenCreateEventModal, setIsOpenCreateEventModal] = useState(false)
+
 	const [initialDates, setInitialDates] = useState({})
 
 	const { data: eventsData, isSuccess: eventsIsSuccess } =
@@ -70,7 +69,7 @@ export default function Home() {
 	}, [eventsData, diarysData, initialDates])
 
 	return (
-		<div className="w-full h-screen flex justify-center items-center border">
+		<div className=" h-screen my-8 flex justify-center items-center ">
 			{isOpenDateClickModal && (
 				<DateClickModal
 					events={events}
@@ -80,14 +79,9 @@ export default function Home() {
 				/>
 			)}
 
-			{isOpenCreateEventModal && (
-				<CreateEventModal
-					open={isOpenCreateEventModal}
-					onClose={() => setIsOpenCreateEventModal(false)}
-				/>
-			)}
-			<div className=" w-2/3">
+			<div className=" w-2/3 h-fit">
 				<FullCalendar
+					viewClassNames="p-0"
 					datesSet={(date) =>
 						setInitialDates((prevState) => ({
 							...prevState,
@@ -98,20 +92,14 @@ export default function Home() {
 					plugins={[dayGridPlugin, interactionPlugin]}
 					initialView="dayGridMonth"
 					events={events}
-					customButtons={{
-						createEvent: {
-							text: "Add Event",
-							click: () => setIsOpenCreateEventModal(true),
-						},
-					}}
 					headerToolbar={{
 						left: "title",
 						center: "",
-						right: "createEvent today prev next",
+						right: "today prev next",
 					}}
 					weekends={true}
 					dateClick={onDateClickHandler}
-					firstDay={1}
+					firstDay={7}
 					contentHeight={800}
 				/>
 			</div>
@@ -122,6 +110,7 @@ export default function Home() {
 function DateClickModal({ events, open, onClose, dateStr }) {
 	const { data, isSuccess } = useGetDiaryQuery({ date: dateStr })
 	const [diary, setDiary] = useState({ description: "", id: "" })
+	const [isOpenCreateEventModal, setIsOpenCreateEventModal] = useState(false)
 	const [filteredEvents, setFilteredEvents] = useState([])
 
 	const [addDiary] = useAddDiaryMutation()
@@ -177,91 +166,108 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 	const day = dateStr.slice(8, 10)
 
 	return (
-		<Transition appear show={open} as={Fragment}>
-			<Dialog onClose={onClose} className="absolute z-50 ">
-				<div className="fixed inset-0 flex items-center justify-center p-4  bg-gray-500 bg-opacity-50">
-					<Transition.Child
-						as={Fragment}
-						enter="ease-out duration-300"
-						enterFrom="opacity-0 scale-95"
-						enterTo="opacity-100 scale-100"
-						leave="ease-in duration-200"
-						leaveFrom="opacity-100 scale-100"
-						leaveTo="opacity-0 scale-95"
-					>
-						<Dialog.Panel className="w-full max-w-xl h-fit rounded bg-white ">
-							<div className="flex flex-col min-h-[30rem]">
-								<Dialog.Title className="flex justify-between h-14 py-3 px-5 bg-[#2c3e50] ">
-									<div className="text-xl text-white">{`${year}년 ${month}월 ${day}일`}</div>
-								</Dialog.Title>
+		<>
+			{isOpenCreateEventModal && (
+				<CreateEventModal
+					open={isOpenCreateEventModal}
+					onClose={() => setIsOpenCreateEventModal(false)}
+					dateStr={dateStr}
+				/>
+			)}
+			<Transition appear show={open} as={Fragment}>
+				<Dialog onClose={onClose} className="absolute z-50 ">
+					<div className="fixed inset-0 flex items-center justify-center p-4  bg-gray-500 bg-opacity-50">
+						<Transition.Child
+							as={Fragment}
+							enter="ease-out duration-300"
+							enterFrom="opacity-0 scale-95"
+							enterTo="opacity-100 scale-100"
+							leave="ease-in duration-200"
+							leaveFrom="opacity-100 scale-100"
+							leaveTo="opacity-0 scale-95"
+						>
+							<Dialog.Panel className="w-full max-w-xl h-fit rounded bg-white ">
+								<div className="flex flex-col min-h-[30rem]">
+									<Dialog.Title className="flex justify-between h-14 py-3 px-5 bg-[#2c3e50] ">
+										<div className="text-xl text-white">{`${year}년 ${month}월 ${day}일`}</div>
+									</Dialog.Title>
 
-								<div className="flex p-2 ">
-									<div className="w-full p-3 mb-4">
-										<h2 className="text-xl font-semibold my-2">Events</h2>
-										{filteredEvents &&
-											filteredEvents.map((event) => {
-												if (!event._id) {
-													return
-												}
-												return (
-													<div className="w-full" key={event._id}>
-														<EventItemBar
-															key={event._id}
-															id={event._id}
-															title={event.title}
-															memo={event.memo}
-															start={event.start}
-															end={event.end}
-															allDay={event.allDay}
-														/>
-													</div>
-												)
-											})}
-									</div>
-									<div className="w-full p-3 border-l-2 border-[#2c3e50] border-opacity-30 mb-4">
-										<h2 className="text-xl font-semibold  my-2">Diary</h2>
+									<div className="flex p-2 ">
+										<div className="w-full p-3 mb-4">
+											<div className="flex justify-between">
+												<h2 className="text-xl font-semibold my-2">Events</h2>
+												<p
+													className="text-2xl mt-2 rounded-3xl mr-1 w-9 hover:bg-opacity-40 text-center cursor-pointer hover:bg-[#16a085] hover:text-white"
+													onClick={() => setIsOpenCreateEventModal(true)}
+												>
+													+
+												</p>
+											</div>
+											{filteredEvents &&
+												filteredEvents.map((event) => {
+													if (!event._id) {
+														return
+													}
+													return (
+														<div className="w-full" key={event._id}>
+															<EventItemBar
+																key={event._id}
+																id={event._id}
+																title={event.title}
+																memo={event.memo}
+																start={event.start}
+																end={event.end}
+																allDay={event.allDay}
+															/>
+														</div>
+													)
+												})}
+										</div>
+										<div className="w-full p-3 border-l-2 border-[#2c3e50] border-opacity-30 mb-4">
+											<h2 className="text-xl font-semibold  my-2">Diary</h2>
 
-										<div className="flex justify-center">
-											<textarea
-												className="resize-none w-full text-lg min-h-[20rem] p-2"
-												id="diary"
-												maxLength={500}
-												rows={3}
-												value={diary.description}
-												onChange={(event) => {
-													setDiary((prevState) => ({
-														...prevState,
-														description: event.target.value,
-													}))
-												}}
-											></textarea>
+											<div className="flex justify-center">
+												<textarea
+													className="resize-none w-full text-lg min-h-[20rem] p-2"
+													id="diary"
+													maxLength={500}
+													rows={3}
+													value={diary.description}
+													onChange={(event) => {
+														setDiary((prevState) => ({
+															...prevState,
+															description: event.target.value,
+														}))
+													}}
+												></textarea>
+											</div>
 										</div>
 									</div>
 								</div>
-							</div>
-							<div className=" h-14 py-2 px-4 flex justify-end bg-[#2c3e50] bg-opacity-10">
-								<button
-									type="button"
-									onClick={submitFunction}
-									className="border w-20 rounded-lg bg-[#2c3e50] text-white
+								<div className=" h-14 py-2 px-4 flex justify-end bg-[#2c3e50] bg-opacity-10">
+									<button
+										type="button"
+										onClick={submitFunction}
+										className="border w-20 rounded-lg bg-[#2c3e50] text-white
 								hover:bg-[#16a085] mr-2"
-								>
-									SAVE
-								</button>
-								<button
-									type="button"
-									onClick={onClose}
-									className="border w-20 rounded-lg bg-[#2c3e50] text-white
+									>
+										SAVE
+									</button>
+									<button
+										type="button"
+										onClick={onClose}
+										className="border w-20 rounded-lg bg-[#2c3e50] text-white
 								hover:bg-[#16a085]"
-								>
-									CLOSE
-								</button>
-							</div>
-						</Dialog.Panel>
-					</Transition.Child>
-				</div>
-			</Dialog>
-		</Transition>
+									>
+										CLOSE
+									</button>
+								</div>
+							</Dialog.Panel>
+						</Transition.Child>
+					</div>
+				</Dialog>
+			</Transition>
+		</>
 	)
 }
 

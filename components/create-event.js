@@ -6,9 +6,9 @@ import { useAddEventMutation } from "../query/eventApi"
 import { toast } from "react-toastify"
 import ReactDatePicker from "react-datepicker"
 
-export default function CreateEventModal({ open, onClose }) {
-	const [startDate, setStartDate] = useState(new Date())
-	const [endDate, setEndDate] = useState(new Date())
+export default function CreateEventModal({ open, onClose, dateStr }) {
+	const [startDate, setStartDate] = useState(new Date(dateStr))
+	const [endDate, setEndDate] = useState(new Date(dateStr))
 
 	const [addEvent] = useAddEventMutation()
 
