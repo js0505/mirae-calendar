@@ -21,6 +21,8 @@ import {
 } from "../query/diaryApi"
 import CreateEventModal from "../components/create-event"
 import DeleteIcon from "../components/UI/icons/delete"
+import { ColorPickRadio } from "../components/UI/color-pick-radio"
+import { eventColors } from "../lib/variables/variables"
 
 export default function Home() {
 	const [events, setEvents] = useState([])
@@ -115,6 +117,7 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 
 	const [addDiary] = useAddDiaryMutation()
 	const [editDiary] = useEditDiaryMutation()
+
 	useEffect(() => {
 		if (isSuccess && data.diary !== null) {
 			setDiary({ description: data.diary.description, id: data.diary._id })
@@ -218,6 +221,7 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 																start={event.start}
 																end={event.end}
 																allDay={event.allDay}
+																backgroundColor={event.backgroundColor || ""}
 															/>
 														</div>
 													)
@@ -271,7 +275,15 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 	)
 }
 
-function EventItemBar({ title, id, memo, start, end, allDay }) {
+function EventItemBar({
+	title,
+	id,
+	memo,
+	start,
+	end,
+	allDay,
+	backgroundColor,
+}) {
 	const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
 	const [deleteEvent] = useDeleteEventMutation()
 	const deleteEventHandler = async () => {
@@ -298,12 +310,17 @@ function EventItemBar({ title, id, memo, start, end, allDay }) {
 					end={end}
 					allDay={allDay}
 					eventId={id}
+					backgroundColor={backgroundColor}
 				/>
 			)}
 			<div className=" w-full  h-10  ">
-				<ul className=" list-disc  ml-3">
+				<ul className="">
 					<li className="">
 						<div className="flex justify-between items-center">
+							<span
+								className="w-8 h-4 mr-2 rounded-full"
+								style={{ backgroundColor: `${backgroundColor}` }}
+							/>
 							<span className=" font-light min-w-[4rem]">
 								{allDay ? "종일" : start.slice(11, 16)}
 							</span>
@@ -337,6 +354,7 @@ function UpdateEventModal({
 	start,
 	end,
 	allDay,
+	backgroundColor,
 }) {
 	const parseEndDate = new Date(end)
 	const [startDate, setStartDate] = useState(new Date(start))
@@ -346,12 +364,13 @@ function UpdateEventModal({
 
 	const [editEvent] = useEditEventMutation()
 
-	const { register, handleSubmit, watch, reset } = useForm({
+	const { register, handleSubmit, watch, reset, control } = useForm({
 		mode: "onSubmit",
 		defaultValues: {
 			isAllDay: allDay,
 			memo,
 			title,
+			backgroundColor,
 		},
 	})
 
@@ -372,7 +391,6 @@ function UpdateEventModal({
 				  )}`
 				: start
 		}`
-
 		const body = {
 			title: formBody.title,
 			memo: formBody.memo,
@@ -380,8 +398,11 @@ function UpdateEventModal({
 			end,
 			id: eventId,
 			allDay: isAllDayChecked,
+			backgroundColor: formBody.backgroundColor,
+			borderColor: formBody.backgroundColor,
 		}
 
+		console.log(body)
 		const response = await editEvent({ body })
 		if (response.data.success) {
 			toast.success(response.data.message)
@@ -487,14 +508,12 @@ function UpdateEventModal({
 									/>
 								</div>
 
-								{/* <div>
-									<label>메모 : </label>
-									<input
-										type="textarea"
-										className="border"
-										{...register("memo")}
-									/>
-								</div> */}
+								<label className="text-right mr-4 col-span-2 text-lg leading-10">
+									Color:
+								</label>
+								<div className="col-span-6">
+									<ColorPickRadio colors={eventColors} control={control} />
+								</div>
 								<div className="col-span-8  h-14 py-2 px-4 flex justify-end bg-[#2c3e50] bg-opacity-20">
 									<button
 										className="text-white w-20 bg-[#2c3e50] hover:bg-[#16a085] rounded-md mr-2"

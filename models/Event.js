@@ -20,6 +20,8 @@ export const eventSchema = new Schema(
 		backgroundColor: {
 			type: String,
 		},
+		borderColor: { type: String },
+
 		memo: {
 			type: String,
 		},

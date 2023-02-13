@@ -5,6 +5,8 @@ import { useForm } from "react-hook-form"
 import { useAddEventMutation } from "../query/eventApi"
 import { toast } from "react-toastify"
 import ReactDatePicker from "react-datepicker"
+import { ColorPickRadio } from "./UI/color-pick-radio"
+import { eventColors } from "../lib/variables/variables"
 
 export default function CreateEventModal({ open, onClose, dateStr }) {
 	const [startDate, setStartDate] = useState(new Date(dateStr))
@@ -12,12 +14,13 @@ export default function CreateEventModal({ open, onClose, dateStr }) {
 
 	const [addEvent] = useAddEventMutation()
 
-	const { register, handleSubmit, watch, reset } = useForm({
+	const { register, handleSubmit, watch, reset, control } = useForm({
 		mode: "onSubmit",
 		defaultValues: {
 			isAllDay: true,
 			memo: "",
 			title: "",
+			color: "#E67B73",
 		},
 	})
 
@@ -40,6 +43,8 @@ export default function CreateEventModal({ open, onClose, dateStr }) {
 			start,
 			end,
 			allDay: isAllDayChecked,
+			backgroundColor: formBody.color,
+			borderColor: formBody.color,
 		}
 
 		const response = await addEvent(body)
@@ -153,15 +158,12 @@ export default function CreateEventModal({ open, onClose, dateStr }) {
 										dateFormat={"yyyy.MM.dd"}
 									/>
 								</div>
-
-								{/* <div>
-								<label>메모 : </label>
-								<input
-									type="textarea"
-									className="border"
-									{...register("memo")}
-								/>
-							</div> */}
+								<label className="text-right mr-4 col-span-2 text-lg leading-10">
+									Color:
+								</label>
+								<div className="col-span-6">
+									<ColorPickRadio colors={eventColors} control={control} />
+								</div>
 								<div className="col-span-8  h-14 py-2 px-4 flex justify-end bg-[#2c3e50] bg-opacity-20">
 									<button
 										className="text-white w-20 bg-[#2c3e50] hover:bg-[#16a085] rounded-md"

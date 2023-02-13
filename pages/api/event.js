@@ -34,26 +34,37 @@ handler.post(async function (req, res) {
 			.json({ success: true, event: newEvent, message: "일정 등록 성공" })
 	} catch (e) {
 		console.log("err")
-		res
-			.status(400)
-			.json({ success: false, message: "일정 등록 중 오류 발생" })
+		res.status(400).json({ success: false, message: "일정 등록 중 오류 발생" })
 	}
 })
 
 handler.patch(async function (req, res) {
 	try {
-		const { id, title, start, end, memo, allDay } = req.body
+		const {
+			id,
+			title,
+			start,
+			end,
+			memo,
+			allDay,
+			backgroundColor,
+			borderColor,
+		} = req.body
 
 		const updateEvent = await Event.findByIdAndUpdate(
 			{ _id: id },
 			{
-				$set: { title, start, end, memo, allDay },
+				$set: { title, start, end, memo, allDay, backgroundColor, borderColor },
 			},
 		)
-		res.status(200).json({ success: true, event: updateEvent, message:"일정 수정 성공" })
+		res
+			.status(200)
+			.json({ success: true, event: updateEvent, message: "일정 수정 성공" })
 	} catch (e) {
 		console.log(e)
-		res.status(400).json({ success: false, error: e , message:'일정 수정 실패'})
+		res
+			.status(400)
+			.json({ success: false, error: e, message: "일정 수정 실패" })
 	}
 })
 
@@ -61,9 +72,11 @@ handler.delete(async function (req, res) {
 	try {
 		const { id } = req.body
 		const deleteEvent = await Event.findByIdAndRemove(id)
-		res.status(200).json({ success: true, event: deleteEvent, message:'일정 삭제 성공' })
+		res
+			.status(200)
+			.json({ success: true, event: deleteEvent, message: "일정 삭제 성공" })
 	} catch (e) {
-		res.status(400).json({ success: false, message:'일정 삭제 실패' })
+		res.status(400).json({ success: false, message: "일정 삭제 실패" })
 	}
 })
 export default handler
