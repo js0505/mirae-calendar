@@ -1,7 +1,7 @@
 import FullCalendar from "@fullcalendar/react"
 import dayGridPlugin from "@fullcalendar/daygrid"
+import googleCalendarPlugin from "@fullcalendar/google-calendar"
 import interactionPlugin from "@fullcalendar/interaction"
-
 import { Fragment, useEffect, useState } from "react"
 import { Dialog, Switch, Transition } from "@headlessui/react"
 import {
@@ -28,7 +28,6 @@ export default function Home() {
 	const [events, setEvents] = useState([])
 	const [modalDateStr, setModalDateStr] = useState("")
 	const [isOpenDateClickModal, setIsOpenDateClickModal] = useState(false)
-
 	const [initialDates, setInitialDates] = useState({})
 
 	const { data: eventsData, isSuccess: eventsIsSuccess } =
@@ -57,7 +56,8 @@ export default function Home() {
 					editedDiary.push({
 						title: "📖",
 						start: diary.date,
-						color: "#bdc3c7",
+						color: "transparent",
+						classNames: ["text-right", "mr-9"],
 						display: "background",
 					}),
 				)
@@ -71,7 +71,7 @@ export default function Home() {
 	}, [eventsData, diarysData, initialDates])
 
 	return (
-		<div className=" h-screen my-8 flex justify-center items-center ">
+		<div className=" h-screen my-2 flex justify-center items-center ">
 			{isOpenDateClickModal && (
 				<DateClickModal
 					events={events}
@@ -84,6 +84,9 @@ export default function Home() {
 			<div className=" w-2/3 h-fit">
 				<FullCalendar
 					viewClassNames="p-0"
+					expandRows={true}
+					dayMaxEventRows={4}
+					locale="ko"
 					datesSet={(date) =>
 						setInitialDates((prevState) => ({
 							...prevState,
@@ -91,9 +94,20 @@ export default function Home() {
 							endStr: date.endStr,
 						}))
 					}
-					plugins={[dayGridPlugin, interactionPlugin]}
+					googleCalendarApiKey="AIzaSyCfZbX5U1LSAV_kRuyymgZ-FkR1jsxlXc8"
+					plugins={[dayGridPlugin, interactionPlugin, googleCalendarPlugin]}
 					initialView="dayGridMonth"
-					events={events}
+					eventSources={[
+						events,
+						{
+							googleCalendarId:
+								"ko.south_korea#holiday@group.v.calendar.google.com",
+							url: "",
+							backgroundColor: "transparent",
+							display: "background",
+							classNames: ["text-red-600"],
+						},
+					]}
 					headerToolbar={{
 						left: "title",
 						center: "",
@@ -134,6 +148,11 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 	}, [isSuccess, open, events, dateStr])
 
 	const submitFunction = async () => {
+		// 일기 아무것도 안쓰고 저장 누르면 리턴.
+		if (diary.description === "") {
+			return
+		}
+
 		// 데이터 없을 때 새 데이터 생성
 		if (data.diary === null) {
 			const body = {
@@ -178,7 +197,7 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 				/>
 			)}
 			<Transition appear show={open} as={Fragment}>
-				<Dialog onClose={onClose} className="absolute z-50 ">
+				<Dialog onClose={onClose} className="absolute z-50  ">
 					<div className="fixed inset-0 flex items-center justify-center p-4  bg-gray-500 bg-opacity-50">
 						<Transition.Child
 							as={Fragment}
@@ -402,7 +421,6 @@ function UpdateEventModal({
 			borderColor: formBody.backgroundColor,
 		}
 
-		console.log(body)
 		const response = await editEvent({ body })
 		if (response.data.success) {
 			toast.success(response.data.message)

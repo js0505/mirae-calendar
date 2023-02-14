@@ -1,6 +1,6 @@
 import { Dialog, Switch, Transition } from "@headlessui/react"
 import { format } from "date-fns"
-import { Fragment, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { useAddEventMutation } from "../query/eventApi"
 import { toast } from "react-toastify"
@@ -20,7 +20,7 @@ export default function CreateEventModal({ open, onClose, dateStr }) {
 			isAllDay: true,
 			memo: "",
 			title: "",
-			color: "#E67B73",
+			backgroundColor: "#E67B73",
 		},
 	})
 
@@ -43,8 +43,8 @@ export default function CreateEventModal({ open, onClose, dateStr }) {
 			start,
 			end,
 			allDay: isAllDayChecked,
-			backgroundColor: formBody.color,
-			borderColor: formBody.color,
+			backgroundColor: formBody.backgroundColor,
+			borderColor: formBody.backgroundColor,
 		}
 
 		const response = await addEvent(body)
