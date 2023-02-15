@@ -1,6 +1,5 @@
 import FullCalendar from "@fullcalendar/react"
 import dayGridPlugin from "@fullcalendar/daygrid"
-import googleCalendarPlugin from "@fullcalendar/google-calendar"
 import interactionPlugin from "@fullcalendar/interaction"
 import { Fragment, useEffect, useState } from "react"
 import { Dialog, Switch, Transition } from "@headlessui/react"
@@ -11,7 +10,7 @@ import {
 } from "../query/eventApi"
 import ReactDatePicker from "react-datepicker"
 import { useForm } from "react-hook-form"
-import { format } from "date-fns"
+import { format, isAfter, isBefore, parseISO } from "date-fns"
 import { toast } from "react-toastify"
 import {
 	useAddDiaryMutation,
@@ -19,6 +18,7 @@ import {
 	useGetDiaryQuery,
 	useGetFilteredDiarysQuery,
 } from "../query/diaryApi"
+import { useGetHolidayQuery } from "../query/holidayApi"
 import CreateEventModal from "../components/create-event"
 import DeleteIcon from "../components/UI/icons/delete"
 import { ColorPickRadio } from "../components/UI/color-pick-radio"
@@ -41,6 +41,13 @@ export default function Home() {
 			end: initialDates.endStr,
 		})
 
+	const { data: holidayData, isSuccess: holidayIsSuccess } = useGetHolidayQuery(
+		{
+			solYear: 2023,
+			ServiceKey: process.env.HOLIDAY_API_KEY,
+		},
+	)
+
 	const onDateClickHandler = (arg) => {
 		const clickedDate = arg.dateStr
 		setModalDateStr(clickedDate)
@@ -49,8 +56,9 @@ export default function Home() {
 
 	useEffect(() => {
 		setEvents([])
-		if (eventsIsSuccess && diaryIsSuccess) {
+		if (eventsIsSuccess && diaryIsSuccess && holidayIsSuccess) {
 			let editedDiary = []
+			let editedHoliday = []
 			if (diarysData.length !== 0) {
 				diarysData.diarys.map((diary) =>
 					editedDiary.push({
@@ -62,13 +70,38 @@ export default function Home() {
 					}),
 				)
 			}
+
+			if (holidayData.response.body.items.length !== 0) {
+				holidayData.response.body.items.item.map((holiday) => {
+					const year = holiday.locdate.toString().slice(0, 4)
+					const month = holiday.locdate.toString().slice(4, 6)
+					const day = holiday.locdate.toString().slice(6, 8)
+					const date = `${year}-${month}-${day}`
+					const dateISO = parseISO(date)
+
+					if (
+						isAfter(dateISO, parseISO(initialDates.startStr)) &&
+						isBefore(dateISO, parseISO(initialDates.endStr))
+					) {
+						editedHoliday.push({
+							title: holiday.dateName,
+							start: date,
+							backgroundColor: "transparent",
+							display: "background",
+							classNames: ["text-red-600"],
+						})
+					}
+				})
+			}
+
 			setEvents((prevState) => [
 				...prevState,
 				...eventsData.events,
 				...editedDiary,
+				...editedHoliday,
 			])
 		}
-	}, [eventsData, diarysData, initialDates])
+	}, [eventsData, diarysData, initialDates, holidayData])
 
 	return (
 		<div className=" h-screen my-2 flex justify-center items-center ">
@@ -94,20 +127,9 @@ export default function Home() {
 							endStr: date.endStr,
 						}))
 					}
-					googleCalendarApiKey="AIzaSyCfZbX5U1LSAV_kRuyymgZ-FkR1jsxlXc8"
-					plugins={[dayGridPlugin, interactionPlugin, googleCalendarPlugin]}
+					plugins={[dayGridPlugin, interactionPlugin]}
 					initialView="dayGridMonth"
-					eventSources={[
-						events,
-						{
-							googleCalendarId:
-								"ko.south_korea#holiday@group.v.calendar.google.com",
-							url: "",
-							backgroundColor: "transparent",
-							display: "background",
-							classNames: ["text-red-600"],
-						},
-					]}
+					eventSources={[events]}
 					headerToolbar={{
 						left: "title",
 						center: "",

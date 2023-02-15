@@ -7,14 +7,14 @@ const diaryApi = api.injectEndpoints({
 				if (!start) {
 					return ""
 				}
-				return `diary?start=${start}&end=${end}`
+				return `/api/diary?start=${start}&end=${end}`
 			},
 			providesTags: ["Diary"],
 		}),
 		addDiary: builder.mutation({
 			query: (body) => {
 				return {
-					url: "diary",
+					url: "/api/diary",
 					method: "POST",
 					body,
 				}
@@ -24,7 +24,7 @@ const diaryApi = api.injectEndpoints({
 
 		getDiary: builder.query({
 			query: ({ date }) => {
-				return `diary?date=${date}`
+				return `/api/diary?date=${date}`
 			},
 			providesTags: ["Diary"],
 		}),
@@ -32,7 +32,7 @@ const diaryApi = api.injectEndpoints({
 		editDiary: builder.mutation({
 			query: (body) => {
 				return {
-					url: "diary",
+					url: "/api/diary",
 					method: "PATCH",
 					body,
 				}

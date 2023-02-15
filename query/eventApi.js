@@ -5,7 +5,7 @@ const eventApi = api.injectEndpoints({
 		addEvent: builder.mutation({
 			query: (body) => {
 				return {
-					url: "event",
+					url: "/api/event",
 					method: "POST",
 					body,
 				}
@@ -15,7 +15,7 @@ const eventApi = api.injectEndpoints({
 
 		getFilteredEvents: builder.query({
 			query: ({ start, end }) => {
-				return `event?start=${start}&end=${end}`
+				return `/api/event?start=${start}&end=${end}`
 			},
 			providesTags: ["Events"],
 		}),
@@ -23,7 +23,7 @@ const eventApi = api.injectEndpoints({
 		editEvent: builder.mutation({
 			query: ({ body }) => {
 				return {
-					url: "event",
+					url: "/api/event",
 					method: "PATCH",
 					body,
 				}
@@ -33,7 +33,7 @@ const eventApi = api.injectEndpoints({
 		deleteEvent: builder.mutation({
 			query: ({ id }) => {
 				return {
-					url: "event",
+					url: "/api/event",
 					method: "DELETE",
 					body: { id },
 				}
