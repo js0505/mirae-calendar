@@ -1,7 +1,5 @@
 import { RadioGroup } from "@headlessui/react"
 import { useController } from "react-hook-form"
-import { eventColors } from "../../lib/variables/variables"
-import { Fragment } from "react"
 
 export function ColorPickRadio({ control }) {
 	const {

@@ -39,6 +39,7 @@ handler.post(async function (req, res) {
 	try {
 		const newDiary = await new Diary(req.body)
 		newDiary.save()
+
 		res
 			.status(200)
 			.json({ success: true, diary: newDiary, message: "일기 등록 성공" })
@@ -58,6 +59,7 @@ handler.patch(async function (req, res) {
 				$set: { description },
 			},
 		)
+
 		res
 			.status(200)
 			.json({ success: true, diary: updateDiary, message: "일기 수정 완료." })

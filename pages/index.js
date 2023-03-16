@@ -5,12 +5,14 @@ import { Fragment, useEffect, useState } from "react"
 import { Dialog, Switch, Transition } from "@headlessui/react"
 import {
 	useDeleteEventMutation,
+	useEditEventByIdMutation,
 	useEditEventMutation,
 	useGetFilteredEventsQuery,
+	useLazyGetEventByIdQuery,
 } from "../query/eventApi"
 import ReactDatePicker from "react-datepicker"
-import { useForm } from "react-hook-form"
-import { format, isAfter, isBefore, parseISO } from "date-fns"
+import { useController, useForm } from "react-hook-form"
+import { format, isAfter, isBefore, parseISO, sub } from "date-fns"
 import { toast } from "react-toastify"
 import {
 	useAddDiaryMutation,
@@ -23,12 +25,27 @@ import CreateEventModal from "../components/create-event"
 import DeleteIcon from "../components/UI/icons/delete"
 import { ColorPickRadio } from "../components/UI/color-pick-radio"
 import { eventColors } from "../lib/variables/variables"
+import { dateStrHelper } from "../lib/date/DateStringHelper"
 
 export default function Home() {
 	const [events, setEvents] = useState([])
+	const [originalTitleEvents, setOriginalTitleEvents] = useState([])
 	const [modalDateStr, setModalDateStr] = useState("")
 	const [isOpenDateClickModal, setIsOpenDateClickModal] = useState(false)
+	const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+	const [clickedEvent, setClickedEvent] = useState({
+		title: "",
+		memo: "",
+		start: "",
+		end: "",
+		allDay: "",
+		eventId: "",
+		backgroundColor: "",
+	})
 	const [initialDates, setInitialDates] = useState({})
+
+	const [editEventById] = useEditEventByIdMutation()
+	const [getEventByIdTrigger] = useLazyGetEventByIdQuery()
 
 	const { data: eventsData, isSuccess: eventsIsSuccess } =
 		useGetFilteredEventsQuery({
@@ -54,11 +71,140 @@ export default function Home() {
 		setIsOpenDateClickModal(true)
 	}
 
+	const onEventClickHandler = async (arg) => {
+		const response = await getEventByIdTrigger({
+			eventId: arg.event._def.extendedProps._id,
+		})
+
+		if (response.data) {
+			setClickedEvent({
+				title: response.data.event.title,
+				memo: response.data.event.memo,
+				start: response.data.event.start,
+				end: response.data.event.end,
+				allDay: response.data.event.allDay,
+				backgroundColor: response.data.event.backgroundColor,
+				eventId: response.data.event._id,
+			})
+			setIsUpdateModalOpen(true)
+		}
+	}
+
+	const onEventDropHandler = async (arg) => {
+		const allDay = arg.event._def.allDay
+
+		/**
+		 * dropped : 이벤트가 옮겨진 날짜의 데이터
+		 * 종료일은 하루가 더 길게 생성되어 하루를 뺀 데이터로 가공.
+		 */
+		const droppedStart = arg.event._instance.range.start
+		const droppedEnd = allDay
+			? sub(arg.event._instance.range.end, { days: 1 })
+			: droppedStart
+		const oldEventStart = arg.oldEvent._instance.range.start
+		// const oldEventEnd = arg.oldEvent._instance.range.end
+
+		/**
+		 * 옮긴 시작 일자
+		 * getMonth or getUTCMonth 는 월을 0~11로 표현해서 +1을 해줌
+		 */
+
+		const droppedStartYear = droppedStart.getUTCFullYear()
+		const droppedStartMonth = droppedStart.getUTCMonth() + 1
+		const droppedStartDate = droppedStart.getUTCDate()
+
+		const droppedStartMonthString = `${
+			droppedStartMonth.toString().length === 1
+				? `0${droppedStartMonth}`
+				: `${droppedStartMonth}`
+		}`
+		const droppedStartDateString = `${
+			droppedStartDate.toString().length === 1
+				? `0${droppedStartDate}`
+				: droppedStartDate
+		}`
+
+		/**
+		 * 옮긴 종료 일자
+		 */
+
+		const droppedEndYear = droppedEnd.getUTCFullYear()
+		const droppedEndMonth = droppedEnd.getUTCMonth() + 1
+		const droppedEndDate = droppedEnd.getUTCDate()
+
+		const droppedEndMonthString = `${
+			droppedEndMonth.toString().length === 1
+				? `0${droppedEndMonth}`
+				: `${droppedEndMonth}`
+		}`
+		const droppedEndDateString = `${
+			droppedEndDate.toString().length === 1
+				? `0${droppedEndDate}`
+				: droppedEndDate
+		}`
+
+		/**
+		 * 기존 이벤트의 시간 값
+		 */
+
+		const oldEventStartHour = `${
+			oldEventStart.getUTCHours() < 10
+				? `0${oldEventStart.getUTCHours()}`
+				: oldEventStart.getUTCHours()
+		}`
+		const oldEventStartMinute = `${
+			oldEventStart.getUTCMinutes() < 10
+				? `0${oldEventStart.getUTCMinutes()}`
+				: oldEventStart.getUTCMinutes()
+		}`
+		const oldEventStartTime = `${oldEventStartHour}:${oldEventStartMinute}`
+
+		/**
+		 * 옮긴 새로운 날짜 + 기존 이벤트 시간
+		 */
+
+		const startDate = `${droppedStartYear}-${droppedStartMonthString}-${droppedStartDateString}${
+			allDay ? "" : `T${oldEventStartTime}`
+		}`
+		const endDate = `${droppedEndYear}-${droppedEndMonthString}-${droppedEndDateString}${
+			allDay ? "" : `T${oldEventStartTime}`
+		}`
+
+		const eventId = arg.event._def.extendedProps._id
+
+		const response = await editEventById({
+			start: startDate,
+			end: endDate,
+			eventId,
+		})
+		if (response.data.success) {
+			toast.success(response.data.message)
+		} else {
+			toast.error(response.data.message)
+		}
+	}
+
 	useEffect(() => {
 		setEvents([])
+		setOriginalTitleEvents([])
+		let editedDiary = []
+		let editedHoliday = []
+		let editedEvent = []
 		if (eventsIsSuccess && diaryIsSuccess && holidayIsSuccess) {
-			let editedDiary = []
-			let editedHoliday = []
+			if (eventsData.events.length !== 0) {
+				eventsData.events.map((event) => {
+					editedEvent.push({
+						...event,
+						title:
+							event.allDay === false
+								? event.title.length > 9
+									? `${event.title.slice(0, 8)} ・・・`
+									: event.title
+								: event.title,
+						// todo: 종일 일정의 시작, 끝이 하루 이상이면 그대로 나오고 아니면 줄여지게
+					})
+				})
+			}
 			if (diarysData.length !== 0) {
 				diarysData.diarys.map((diary) =>
 					editedDiary.push({
@@ -93,10 +239,11 @@ export default function Home() {
 					}
 				})
 			}
-
+			setOriginalTitleEvents([...eventsData.events])
 			setEvents((prevState) => [
 				...prevState,
-				...eventsData.events,
+				// ...eventsData.events,
+				...editedEvent,
 				...editedDiary,
 				...editedHoliday,
 			])
@@ -107,19 +254,42 @@ export default function Home() {
 		<div className=" h-screen my-2 flex justify-center items-center ">
 			{isOpenDateClickModal && (
 				<DateClickModal
-					events={events}
+					events={originalTitleEvents}
 					open={isOpenDateClickModal}
 					dateStr={modalDateStr}
 					onClose={() => setIsOpenDateClickModal(false)}
 				/>
 			)}
+			{isUpdateModalOpen && (
+				<UpdateEventModal
+					onClose={() => setIsUpdateModalOpen(false)}
+					open={isUpdateModalOpen}
+					// title={title}
+					// memo={memo}
+					// start={start}
+					// end={end}
+					// allDay={allDay}
+					// eventId={id}
+					// backgroundColor={backgroundColor}
+					{...clickedEvent}
+				/>
+			)}
 
-			<div className=" w-2/3 h-fit">
+			<div className=" lg:w-3/4  h-full">
 				<FullCalendar
-					viewClassNames="p-0"
+					eventTimeFormat={{
+						hour: "numeric",
+						minute: "2-digit",
+						omitZeroMinute: true,
+						meridiem: "short",
+					}}
+					eventStartEditable={true}
+					eventClick={onEventClickHandler}
+					eventDrop={onEventDropHandler}
+					viewClassNames="p-3"
 					expandRows={true}
 					dayMaxEventRows={4}
-					locale="ko"
+					// locale="ko"
 					datesSet={(date) =>
 						setInitialDates((prevState) => ({
 							...prevState,
@@ -146,17 +316,34 @@ export default function Home() {
 }
 
 function DateClickModal({ events, open, onClose, dateStr }) {
-	const { data, isSuccess } = useGetDiaryQuery({ date: dateStr })
-	const [diary, setDiary] = useState({ description: "", id: "" })
-	const [isOpenCreateEventModal, setIsOpenCreateEventModal] = useState(false)
 	const [filteredEvents, setFilteredEvents] = useState([])
+	const [isOpenCreateEventModal, setIsOpenCreateEventModal] = useState(false)
+	const [isDiaryEditable, setIsDiaryEditable] = useState(false)
 
+	const { data, isSuccess } = useGetDiaryQuery({ date: dateStr })
 	const [addDiary] = useAddDiaryMutation()
 	const [editDiary] = useEditDiaryMutation()
 
+	const year = dateStr.slice(0, 4)
+	const month = dateStr.slice(5, 7)
+	const day = dateStr.slice(8, 10)
+
+	const {
+		register,
+		handleSubmit,
+		getValues,
+		setValue,
+		setFocus,
+		formState: { isDirty: isDiaryDirty },
+	} = useForm({
+		mode: "onSubmit",
+		defaultValues: { diaryDesc: "", diaryId: "" },
+	})
+
 	useEffect(() => {
 		if (isSuccess && data.diary !== null) {
-			setDiary({ description: data.diary.description, id: data.diary._id })
+			setValue("diaryDesc", data.diary.description)
+			setValue("diaryId", data.diary._id)
 		}
 		if (events) {
 			let arr = []
@@ -167,18 +354,24 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 			})
 			setFilteredEvents(arr)
 		}
-	}, [isSuccess, open, events, dateStr])
+		if (isDiaryEditable) setFocus("diaryDesc")
+	}, [isDiaryEditable, events, data])
 
-	const submitFunction = async () => {
+	const editDiaryToggle = () => {
+		setIsDiaryEditable(!isDiaryEditable)
+	}
+
+	const submitFunction = async (formData) => {
 		// 일기 아무것도 안쓰고 저장 누르면 리턴.
-		if (diary.description === "") {
+		const { diaryDesc, diaryId } = formData
+		if (diaryDesc === "") {
 			return
 		}
 
 		// 데이터 없을 때 새 데이터 생성
 		if (data.diary === null) {
 			const body = {
-				description: diary.description,
+				description: diaryDesc,
 				date: dateStr,
 			}
 
@@ -192,8 +385,8 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 		} else {
 			// 데이터 있을 때는 데이터 수정.
 			const body = {
-				id: diary.id,
-				description: diary.description,
+				id: diaryId,
+				description: diaryDesc,
 			}
 			const response = await editDiary(body)
 
@@ -205,9 +398,19 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 		}
 	}
 
-	const year = dateStr.slice(0, 4)
-	const month = dateStr.slice(5, 7)
-	const day = dateStr.slice(8, 10)
+	const closeModalFunction = async () => {
+		if (!isDiaryDirty) {
+			onClose()
+		} else {
+			const accept = confirm("변경된 내용을 저장 하시겠습니까?")
+			if (!accept) {
+				onClose()
+				return
+			}
+			await submitFunction(getValues())
+			onClose()
+		}
+	}
 
 	return (
 		<>
@@ -219,7 +422,11 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 				/>
 			)}
 			<Transition appear show={open} as={Fragment}>
-				<Dialog onClose={onClose} className="absolute z-50  ">
+				<Dialog
+					// onClose={onClose}
+					className="absolute z-50 "
+					onClose={closeModalFunction}
+				>
 					<div className="fixed inset-0 flex items-center justify-center p-4  bg-gray-500 bg-opacity-50">
 						<Transition.Child
 							as={Fragment}
@@ -230,7 +437,7 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 							leaveFrom="opacity-100 scale-100"
 							leaveTo="opacity-0 scale-95"
 						>
-							<Dialog.Panel className="w-full max-w-xl h-fit rounded bg-white ">
+							<Dialog.Panel className="w-full max-w-3xl h-fit rounded bg-white ">
 								<div className="flex flex-col min-h-[30rem]">
 									<Dialog.Title className="flex justify-between h-14 py-3 px-5 bg-[#2c3e50] ">
 										<div className="text-xl text-white">{`${year}년 ${month}월 ${day}일`}</div>
@@ -268,39 +475,48 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 													)
 												})}
 										</div>
-										<div className="w-full p-3 border-l-2 border-[#2c3e50] border-opacity-30 mb-4">
-											<h2 className="text-xl font-semibold  my-2">Diary</h2>
+										<form
+											className="w-full p-3 border-l-2 border-[#2c3e50] border-opacity-30 mb-4"
+											onSubmit={handleSubmit(submitFunction)}
+										>
+											<div className="flex justify-between">
+												<h2 className="text-xl font-semibold my-2">Diary</h2>
+												<div className="flex">
+													<button
+														type="button"
+														className="py-3 mr-2"
+														onClick={editDiaryToggle}
+													>
+														edit
+													</button>
+												</div>
+											</div>
 
 											<div className="flex justify-center">
 												<textarea
-													className="resize-none w-full text-lg min-h-[20rem] p-2"
-													id="diary"
+													className="resize-none w-full text-sm min-h-[20rem] p-2 "
+													id="diaryDesc"
 													maxLength={500}
 													rows={3}
-													value={diary.description}
-													onChange={(event) => {
-														setDiary((prevState) => ({
-															...prevState,
-															description: event.target.value,
-														}))
-													}}
+													disabled={!isDiaryEditable}
+													{...register("diaryDesc")}
 												></textarea>
 											</div>
-										</div>
+										</form>
 									</div>
 								</div>
 								<div className=" h-14 py-2 px-4 flex justify-end bg-[#2c3e50] bg-opacity-10">
-									<button
+									{/* <button
 										type="button"
 										onClick={submitFunction}
 										className="border w-20 rounded-lg bg-[#2c3e50] text-white
 								hover:bg-[#16a085] mr-2"
 									>
 										SAVE
-									</button>
+									</button> */}
 									<button
 										type="button"
-										onClick={onClose}
+										onClick={closeModalFunction}
 										className="border w-20 rounded-lg bg-[#2c3e50] text-white
 								hover:bg-[#16a085]"
 									>
@@ -359,7 +575,7 @@ function EventItemBar({
 					<li className="">
 						<div className="flex justify-between items-center">
 							<span
-								className="w-8 h-4 mr-2 rounded-full"
+								className="w-6 h-4 mr-2 rounded-full"
 								style={{ backgroundColor: `${backgroundColor}` }}
 							/>
 							<span className=" font-light min-w-[4rem]">
@@ -397,12 +613,6 @@ function UpdateEventModal({
 	allDay,
 	backgroundColor,
 }) {
-	const parseEndDate = new Date(end)
-	const [startDate, setStartDate] = useState(new Date(start))
-	const [endDate, setEndDate] = useState(
-		parseEndDate.setDate(parseEndDate.getDate() - 1),
-	)
-
 	const [editEvent] = useEditEventMutation()
 
 	const { register, handleSubmit, watch, reset, control } = useForm({
@@ -412,35 +622,38 @@ function UpdateEventModal({
 			memo,
 			title,
 			backgroundColor,
+			startDate: new Date(start),
+			endDate: sub(new Date(end), { days: 1 }),
 		},
 	})
+
+	const {
+		field: { onChange: startOnChange, value: startValue },
+	} = useController({ name: "startDate", control })
+	const {
+		field: { onChange: endOnChange, value: endValue },
+	} = useController({ name: "endDate", control })
 
 	const isAllDayChecked = watch("isAllDay")
 
 	const submitFunction = async (formBody) => {
-		const start = `${format(startDate, "yyyy-MM-dd")}${
-			isAllDayChecked ? "" : `T${format(startDate, "HH:mm")}`
-		}`
+		const { startDate, endDate, title, memo, backgroundColor } = formBody
 
-		const getEndDate = new Date(endDate)
+		const { start, end } = dateStrHelper({
+			startDate,
+			endDate,
+			isAllDay: isAllDayChecked,
+		})
 
-		const end = `${
-			isAllDayChecked
-				? `${format(
-						getEndDate.setDate(getEndDate.getDate() + 1),
-						"yyyy-MM-dd",
-				  )}`
-				: start
-		}`
 		const body = {
-			title: formBody.title,
-			memo: formBody.memo,
+			title,
+			memo,
 			start,
 			end,
 			id: eventId,
 			allDay: isAllDayChecked,
-			backgroundColor: formBody.backgroundColor,
-			borderColor: formBody.backgroundColor,
+			backgroundColor,
+			borderColor: backgroundColor,
 		}
 
 		const response = await editEvent({ body })
@@ -516,8 +729,8 @@ function UpdateEventModal({
 								<div className="col-span-6">
 									<ReactDatePicker
 										className="text-center border cursor-pointer h-10 rounded-lg text-lg"
-										selected={startDate}
-										onChange={(date) => setStartDate(date)}
+										selected={startValue}
+										onChange={(date) => startOnChange(date)}
 										showTimeSelect={!isAllDayChecked}
 										timeFormat="HH:mm"
 										timeIntervals={30}
@@ -542,8 +755,8 @@ function UpdateEventModal({
 								>
 									<ReactDatePicker
 										className="text-center border h-10 cursor-pointer rounded-lg text-lg"
-										selected={endDate}
-										onChange={(date) => setEndDate(date)}
+										selected={endValue}
+										onChange={(date) => endOnChange(date)}
 										dateFormat={"yyyy.MM.dd"}
 									/>
 								</div>

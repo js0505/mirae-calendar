@@ -1,50 +1,59 @@
 import { Dialog, Switch, Transition } from "@headlessui/react"
-import { format } from "date-fns"
-import { Fragment, useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
+import { Fragment, useEffect } from "react"
+import { useController, useForm } from "react-hook-form"
 import { useAddEventMutation } from "../query/eventApi"
 import { toast } from "react-toastify"
 import ReactDatePicker from "react-datepicker"
 import { ColorPickRadio } from "./UI/color-pick-radio"
 import { eventColors } from "../lib/variables/variables"
+import { dateStrHelper } from "../lib/date/DateStringHelper"
 
 export default function CreateEventModal({ open, onClose, dateStr }) {
-	const [startDate, setStartDate] = useState(new Date(dateStr))
-	const [endDate, setEndDate] = useState(new Date(dateStr))
-
 	const [addEvent] = useAddEventMutation()
 
-	const { register, handleSubmit, watch, reset, control } = useForm({
-		mode: "onSubmit",
-		defaultValues: {
-			isAllDay: true,
-			memo: "",
-			title: "",
-			backgroundColor: "#E67B73",
-		},
-	})
+	const { register, handleSubmit, watch, reset, control, setFocus, setValue } =
+		useForm({
+			mode: "onSubmit",
+			defaultValues: {
+				isAllDay: true,
+				memo: "",
+				title: "",
+				backgroundColor: "#E67B73",
+				startDate: new Date(dateStr),
+				endDate: new Date(dateStr),
+			},
+		})
+
+	const {
+		field: { onChange: startOnChange, value: startValue },
+	} = useController({ name: "startDate", control })
+	const {
+		field: { onChange: endOnChange, value: endValue },
+	} = useController({ name: "endDate", control })
+
+	useEffect(() => {
+		setFocus("title")
+	}, [setFocus])
 
 	const isAllDayChecked = watch("isAllDay")
 
 	const submitFunction = async (formBody) => {
-		const start = `${format(startDate, "yyyy-MM-dd")}${
-			isAllDayChecked ? "" : `T${format(startDate, "HH:mm")}`
-		}`
+		const { startDate, endDate, title, memo, backgroundColor } = formBody
 
-		const end = `${
-			isAllDayChecked
-				? `${format(endDate.setDate(endDate.getDate() + 1), "yyyy-MM-dd")}`
-				: start
-		}`
+		const { start, end } = dateStrHelper({
+			startDate,
+			endDate,
+			isAllDay: isAllDayChecked,
+		})
 
 		const body = {
-			title: formBody.title,
-			memo: formBody.memo,
+			title,
+			memo,
 			start,
 			end,
 			allDay: isAllDayChecked,
-			backgroundColor: formBody.backgroundColor,
-			borderColor: formBody.backgroundColor,
+			backgroundColor,
+			borderColor: backgroundColor,
 		}
 
 		const response = await addEvent(body)
@@ -75,7 +84,7 @@ export default function CreateEventModal({ open, onClose, dateStr }) {
 						>
 							<form
 								className=" w-full  h-full grid gap-6 grid-cols-8"
-								onSubmit={handleSubmit((formBody) => submitFunction(formBody))}
+								onSubmit={handleSubmit(submitFunction)}
 							>
 								<div className="col-span-8 h-14 py-3 px-4  bg-[#2c3e50]">
 									<h1 className="text-white text-xl">Add Event</h1>
@@ -84,6 +93,11 @@ export default function CreateEventModal({ open, onClose, dateStr }) {
 									Title:
 								</label>
 								<input
+									ref={function (ref) {
+										if (ref !== null) {
+											ref.focus()
+										}
+									}}
 									type="text"
 									className="border col-span-5 h-10 rounded-lg px-2 
 									hover:bg-gray-500 hover:bg-opacity-20"
@@ -126,8 +140,8 @@ export default function CreateEventModal({ open, onClose, dateStr }) {
 								<div className="col-span-6">
 									<ReactDatePicker
 										className="text-center border cursor-pointer h-10 rounded-lg text-lg"
-										selected={startDate}
-										onChange={(date) => setStartDate(date)}
+										selected={startValue}
+										onChange={(date) => startOnChange(date)}
 										showTimeSelect={!isAllDayChecked}
 										timeFormat="HH:mm"
 										timeIntervals={30}
@@ -153,8 +167,8 @@ export default function CreateEventModal({ open, onClose, dateStr }) {
 								>
 									<ReactDatePicker
 										className="text-center border h-10 cursor-pointer rounded-lg text-lg"
-										selected={endDate}
-										onChange={(date) => setEndDate(date)}
+										selected={endValue}
+										onChange={(date) => endOnChange(date)}
 										dateFormat={"yyyy.MM.dd"}
 									/>
 								</div>

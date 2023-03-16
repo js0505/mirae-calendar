@@ -12,6 +12,24 @@ const eventApi = api.injectEndpoints({
 			},
 			invalidatesTags: ["Events"],
 		}),
+		getEventById: builder.query({
+			query: ({ eventId }) => {
+				return {
+					url: `/api/event/${eventId}`,
+					method: "GET",
+				}
+			},
+		}),
+		editEventById: builder.mutation({
+			query: ({ start, end, eventId }) => {
+				return {
+					url: `/api/event/${eventId}`,
+					method: "PATCH",
+					body: { start, end },
+				}
+			},
+			invalidatesTags: ["Events"],
+		}),
 
 		getFilteredEvents: builder.query({
 			query: ({ start, end }) => {
@@ -45,7 +63,9 @@ const eventApi = api.injectEndpoints({
 
 export const {
 	useAddEventMutation,
+	useLazyGetEventByIdQuery,
 	useEditEventMutation,
+	useEditEventByIdMutation,
 	useDeleteEventMutation,
 	useGetFilteredEventsQuery,
 } = eventApi

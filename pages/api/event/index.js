@@ -1,6 +1,6 @@
 import nextConnect from "next-connect"
-import Event from "../../models/Event"
-import dbConnect from "../../lib/mongoose/db-connect"
+import Event from "../../../models/Event"
+import dbConnect from "../../../lib/mongoose/db-connect"
 const handler = nextConnect()
 
 handler.use((req, res, next) => {

@@ -1,10 +1,7 @@
-import { useEffect } from "react"
 import { ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 
 export function ToastMessageComponent() {
-	useEffect(() => {}, [])
-
 	return (
 		<>
 			<ToastContainer
@@ -14,7 +11,7 @@ export function ToastMessageComponent() {
 				newestOnTop={false}
 				closeOnClick
 				rtl={false}
-				pauseOnFocusLoss
+				pauseOnFocusLoss={false}
 				draggable
 				pauseOnHover
 				theme="light"
