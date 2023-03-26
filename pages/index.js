@@ -72,6 +72,11 @@ export default function Home() {
 	}
 
 	const onEventClickHandler = async (arg) => {
+		// onDateClickHandler 함수와 중복 실행되어 api측 오류 나타나서
+		// 눌렀을 때 id가 없는건 빈 공간 클릭이라 판단하고 리턴.
+		if (!arg.event._def.extendedProps._id) {
+			return
+		}
 		const response = await getEventByIdTrigger({
 			eventId: arg.event._def.extendedProps._id,
 		})
@@ -321,6 +326,7 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 	const [isDiaryEditable, setIsDiaryEditable] = useState(false)
 
 	const { data, isSuccess } = useGetDiaryQuery({ date: dateStr })
+	console.log(data)
 	const [addDiary] = useAddDiaryMutation()
 	const [editDiary] = useEditDiaryMutation()
 

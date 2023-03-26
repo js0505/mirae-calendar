@@ -44,7 +44,6 @@ const diaryApi = api.injectEndpoints({
 
 export const {
 	useGetFilteredDiarysQuery,
-
 	useAddDiaryMutation,
 	useGetDiaryQuery,
 	useEditDiaryMutation,
