@@ -337,9 +337,8 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 		formState: { isDirty: isDiaryDirty },
 	} = useForm({
 		mode: "onSubmit",
-		defaultValues: { diaryDesc: "", diaryId: "" },
+		defaultValues: { diaryDesc: "", diaryId: "", isSubmitted: false },
 	})
-
 	useEffect(() => {
 		if (isSuccess && data.diary !== null) {
 			setValue("diaryDesc", data.diary.description)
@@ -363,8 +362,9 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 
 	const submitFunction = async (formData) => {
 		// 일기 아무것도 안쓰고 저장 누르면 리턴.
+		// 변경사항이 없는지도 체크
 		const { diaryDesc, diaryId } = formData
-		if (diaryDesc === "") {
+		if (diaryDesc === "" && isDiaryDirty === false) {
 			return
 		}
 
@@ -379,6 +379,7 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 
 			if (response.data.success) {
 				toast.success(response.data.message)
+				setValue("isSubmitted", true)
 			} else {
 				toast.error(response.data.message)
 			}
@@ -392,6 +393,7 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 
 			if (response.data.success) {
 				toast.success(response.data.message)
+				setValue("isSubmitted", true)
 			} else {
 				toast.error(response.data.message)
 			}
@@ -399,7 +401,8 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 	}
 
 	const closeModalFunction = async () => {
-		if (!isDiaryDirty) {
+		const isSubmittedWatch = getValues("isSubmitted")
+		if (!isDiaryDirty || isSubmittedWatch) {
 			onClose()
 		} else {
 			const accept = confirm("변경된 내용을 저장 하시겠습니까?")
@@ -496,7 +499,7 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 												<textarea
 													className="resize-none w-full text-sm min-h-[20rem] p-2 "
 													id="diaryDesc"
-													maxLength={500}
+													maxLength={2000}
 													rows={3}
 													disabled={!isDiaryEditable}
 													{...register("diaryDesc")}
@@ -506,14 +509,14 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 									</div>
 								</div>
 								<div className=" h-14 py-2 px-4 flex justify-end bg-[#2c3e50] bg-opacity-10">
-									{/* <button
+									<button
 										type="button"
-										onClick={submitFunction}
+										onClick={() => submitFunction(getValues())}
 										className="border w-20 rounded-lg bg-[#2c3e50] text-white
 								hover:bg-[#16a085] mr-2"
 									>
 										SAVE
-									</button> */}
+									</button>
 									<button
 										type="button"
 										onClick={closeModalFunction}
