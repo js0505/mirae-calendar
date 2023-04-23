@@ -1,7 +1,7 @@
 import FullCalendar from "@fullcalendar/react"
 import dayGridPlugin from "@fullcalendar/daygrid"
 import interactionPlugin from "@fullcalendar/interaction"
-import { Fragment, useEffect, useState } from "react"
+import { Fragment, useEffect, useRef, useState } from "react"
 import { Dialog, Switch, Transition } from "@headlessui/react"
 import {
 	useDeleteEventMutation,
@@ -26,6 +26,7 @@ import DeleteIcon from "../components/UI/icons/delete"
 import { ColorPickRadio } from "../components/UI/color-pick-radio"
 import { eventColors } from "../lib/variables/variables"
 import { dateStrHelper } from "../lib/date/DateStringHelper"
+import CalendarHeader from "../components/calendar-header"
 
 export default function Home() {
 	const [events, setEvents] = useState([])
@@ -43,6 +44,8 @@ export default function Home() {
 		backgroundColor: "",
 	})
 	const [initialDates, setInitialDates] = useState({})
+
+	const calendarRef = useRef(null)
 
 	const [editEventById] = useEditEventByIdMutation()
 	const [getEventByIdTrigger] = useLazyGetEventByIdQuery()
@@ -269,19 +272,17 @@ export default function Home() {
 				<UpdateEventModal
 					onClose={() => setIsUpdateModalOpen(false)}
 					open={isUpdateModalOpen}
-					// title={title}
-					// memo={memo}
-					// start={start}
-					// end={end}
-					// allDay={allDay}
-					// eventId={id}
-					// backgroundColor={backgroundColor}
 					{...clickedEvent}
 				/>
 			)}
 
 			<div className=" lg:w-3/4  h-full">
+				{/* 커스텀 달력 헤더부분 시작 */}
+				<CalendarHeader calendarRef={calendarRef} />
+				{/* 커스텀 달력 헤더부분 끝 */}
 				<FullCalendar
+					dayHeaders={false}
+					ref={calendarRef}
 					eventTimeFormat={{
 						hour: "numeric",
 						minute: "2-digit",
@@ -295,21 +296,25 @@ export default function Home() {
 					expandRows={true}
 					dayMaxEventRows={4}
 					// locale="ko"
-					datesSet={(date) =>
+					customButtons={{
+						monthlyGoalForm: {},
+					}}
+					datesSet={(date) => {
 						setInitialDates((prevState) => ({
 							...prevState,
 							startStr: date.startStr,
 							endStr: date.endStr,
 						}))
-					}
+					}}
 					plugins={[dayGridPlugin, interactionPlugin]}
 					initialView="dayGridMonth"
 					eventSources={[events]}
-					headerToolbar={{
-						left: "title",
-						center: "",
-						right: "today prev next",
-					}}
+					headerToolbar={false}
+					// headerToolbar={{
+					// 	left: "title",
+					// 	center: "",
+					// 	right: "today prev next",
+					// }}
 					weekends={true}
 					dateClick={onDateClickHandler}
 					firstDay={7}
@@ -326,7 +331,7 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 	const [isDiaryEditable, setIsDiaryEditable] = useState(false)
 
 	const { data, isSuccess } = useGetDiaryQuery({ date: dateStr })
-	console.log(data)
+
 	const [addDiary] = useAddDiaryMutation()
 	const [editDiary] = useEditDiaryMutation()
 
@@ -505,7 +510,7 @@ function DateClickModal({ events, open, onClose, dateStr }) {
 												<textarea
 													className="resize-none w-full text-sm min-h-[20rem] p-2 "
 													id="diaryDesc"
-													maxLength={2000}
+													maxLength={20000}
 													rows={3}
 													disabled={!isDiaryEditable}
 													{...register("diaryDesc")}
